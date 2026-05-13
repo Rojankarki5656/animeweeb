@@ -244,7 +244,7 @@ const WatchPage = () => {
             className="flex items-center gap-2 text-sm mb-6 flex-wrap"
           >
             <Link
-              to="/"
+              to="/home"
               className="flex items-center gap-1 text-gray-400 hover:text-white transition"
             >
               <Home className="w-4 h-4" />
