@@ -1,5 +1,6 @@
 // hooks/useAniListAnime.js
 import { useState, useEffect } from "react";
+const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 export const useAniListAnime = (id) => {
   const [data, setData] = useState(null);
@@ -12,7 +13,7 @@ export const useAniListAnime = (id) => {
       setIsLoading(true);
       setIsError(false);
       try {
-        const res = await fetch(`http://localhost:5001/api/anime/${id}`);
+        const res = await fetch(`${BASE_URL}/api/anime/${id}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!json.success) throw new Error(json.error);

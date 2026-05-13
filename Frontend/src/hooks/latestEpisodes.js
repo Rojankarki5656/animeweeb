@@ -1,5 +1,6 @@
 // hooks/useLatestEpisodes.js
 import { useState, useEffect } from 'react';
+const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 export function useLatestEpisodes(page, per_page) {
   const [data, setData] = useState([]);
@@ -10,7 +11,7 @@ export function useLatestEpisodes(page, per_page) {
     const fetchLatest = async () => {
       try {
         console.log(`Fetching latest episodes for page ${page} with ${per_page} per page...`);
-        const res = await fetch(`http://localhost:5001/api/recent-anime?page=${page || 1}&per_page=${per_page || 20}`);
+        const res = await fetch(`${BASE_URL}/api/recent-anime?page=${page || 1}&per_page=${per_page || 20}`);
         console.log('Fetching latest episodes from API...', res);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();

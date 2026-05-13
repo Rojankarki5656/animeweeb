@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useAniListAnime } from "./animeinfo";
 import { useMegaAnime } from "./animeinfofromserver";
 
-const MEGAPLAY_BASE = "https://megaplay.buzz/stream/ani";
+const MEGAPLAY_BASE = process.env.MEGAPLAY_BASE;
+const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 /**
  * Try primary API first, fallback to AniList + MegaPlay
@@ -33,7 +34,7 @@ export const useSeriesData = (id, type) => {
     if (!id) return;
     const fetchPrimary = async () => {
       try {
-        const res = await fetch(`http://localhost:5001/api/watch?id=${id}`);
+        const res = await fetch(`${BASE_URL}/api/watch?id=${id}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!json.ok) throw new Error("API returned error");

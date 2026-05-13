@@ -1,5 +1,6 @@
 // hooks/useMegaAnime.js
 import { useState, useEffect } from "react";
+const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 export const useMegaAnime = (id) => {
   const [data, setData] = useState(null);
@@ -12,7 +13,7 @@ export const useMegaAnime = (id) => {
       setIsLoading(true);
       setIsError(false);
       try {
-        const res = await fetch(`http://localhost:5001/api/info?id=${id}`);
+        const res = await fetch(`${BASE_URL}/api/info?id=${id}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!json.ok) throw new Error(json.error);

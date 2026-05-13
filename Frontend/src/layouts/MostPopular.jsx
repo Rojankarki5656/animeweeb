@@ -1,8 +1,4 @@
-import React from "react";
 import DynamicLayout from "./DynamicLayout";
-import { useApi } from "../services/useApi";
-import PageNotFound from "../pages/PageNotFound";
-import Loader from "../components/Loader";
 
 const MostPopular = ({ data }) => {
   return (
