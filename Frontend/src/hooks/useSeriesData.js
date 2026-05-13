@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { useAniListAnime } from "./animeinfo";
 import { useMegaAnime } from "./animeinfofromserver";
 
-const MEGAPLAY_BASE = process.env.MEGAPLAY_BASE;
-const BASE_URL = process.env.REACT_APP_BASE_URL;
+const MEGAPLAY_BASE = import.meta.env.VITE_MEGAPLAY_BASE;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 /**
  * Try primary API first, fallback to AniList + MegaPlay

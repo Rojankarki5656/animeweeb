@@ -1,6 +1,6 @@
 // hooks/useAniListAnime.js
 import { useState, useEffect } from "react";
-const BASE_URL = process.env.REACT_APP_BASE_URL;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export const useAniListAnime = (id) => {
   const [data, setData] = useState(null);
