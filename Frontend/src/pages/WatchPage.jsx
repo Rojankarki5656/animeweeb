@@ -40,7 +40,7 @@ const getEpisodeParam = (release) => {
 // Main WatchPage component
 // ----------------------------------------------------------------------
 const WatchPage = () => {
-  const { id, type} = useParams(); // numeric anime ID from URL
+  const { id, type } = useParams(); // numeric anime ID from URL
   const [searchParams, setSearchParams] = useSearchParams();
   const [layout, setLayout] = useState("column");
   const [showEpisodeList, setShowEpisodeList] = useState(true);
@@ -50,9 +50,10 @@ const WatchPage = () => {
   const ep = normalizeEpisodeParam(searchParams.get("ep"));
 
   // Use the enhanced hook with fallback
-  const { series, episodes, isLoading, isError, usedFallback } =
-    useSeriesData(id, type);
-
+  const { series, episodes, isLoading, isError, usedFallback } = useSeriesData(
+    id,
+    type,
+  );
   // Find current episode object
   const currentEp = useMemo(() => {
     if (!ep || !episodes.length) return null;
@@ -251,7 +252,7 @@ const WatchPage = () => {
             </Link>
             <ChevronRight className="w-4 h-4 text-gray-600" />
             <Link
-              to={`/anime/${id}`}
+              to={`/anime/${type === "latest" ? series?.ani_id : id}`}
               className="flex items-center gap-1 text-gray-400 hover:text-white transition"
             >
               <span className="hidden sm:inline">Anime</span>
