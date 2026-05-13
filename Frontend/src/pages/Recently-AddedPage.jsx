@@ -187,7 +187,7 @@ const RecentlyUpdates = () => {
     if (isLatestEpisodes) {
       // Use episodes.eps or episodes.sub to get latest episode number (if needed)
       const epNum = item.episodes?.eps || item.episodes?.sub || 1;
-      return `/watch/${item.id}?ep=${epNum}`;
+      return `/watch/${item.id}/latest?ep=${epNum}`;
     }
     // For AniList items – link to detail page (no direct episode)
     return `/anime/${item.id}`;
