@@ -1,0 +1,1 @@
+import{j as e}from"./index-zANbJ-tO.js";const r="/assets/loader-Ke0oUdSy.gif",a=({className:s})=>e.jsx("div",{className:`flex loader justify-center select-none items-center ${s}`,children:e.jsx("img",{src:r,alt:"loader",className:"w-24 h-auto"})});export{a as L};
