@@ -20,8 +20,6 @@ const DetailPage = () => {
 
   const { data, isLoading, isError } = useAniListAnime(id);
 
-  console.log("Anime details data:", data, "Loading:", isLoading, "Error:", isError);
-
   if (isError) return <div className="text-red-500 text-center py-20">Failed to load anime details.</div>;
   if (isLoading || !data) return <Loader className="h-screen" />;
 

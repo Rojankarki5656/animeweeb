@@ -65,7 +65,6 @@ const Header = () => {
           }),
         });
         const json = await res.json();
-        console.log("Suggestion response:", json);
         if (json.errors) throw new Error(json.errors[0].message);
         const media = json.data?.Page?.media || [];
         setSuggestions(media);
