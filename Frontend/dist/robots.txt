@@ -1,4 +1,19 @@
+# https://animeweebs.app/robots.txt
 User-agent: *
 Allow: /
+Allow: /home
+Allow: /search
+Allow: /trending
+Allow: /popular
+Allow: /latest-episodes
+Allow: /animes/
+Allow: /list/
+Allow: /characters/
+Allow: /people/
+Allow: /character/
+Disallow: /api/
+Disallow: /private/
+Disallow: /watch?*
+Disallow: /?*
 
 Sitemap: https://animeweebs.app/sitemap.xml
