@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import App from "./App.jsx";
 import "./index.css";
+import { Analytics } from '@vercel/analytics/react';
 import "react-toastify/dist/ReactToastify.css";
 
 // Optimization: Set staleTime to avoid unnecessary refetches that slow down the UI
@@ -30,6 +31,7 @@ createRoot(document.getElementById("root")).render(
             limit={3} // Better UX/UI performance
           />
           <App />
+          <Analytics />
         </BrowserRouter>
       </QueryClientProvider>
     </HelmetProvider>

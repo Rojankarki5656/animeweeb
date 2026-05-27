@@ -1,7 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { Analytics } from '@vercel/analytics/next';
-
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import ScrollToTop from "./utils/ScrollToTop";
@@ -63,7 +61,6 @@ const App = () => {
           </Routes>
         </Suspense>
       </main>
-      <Analytics />
     </>
   );
 };
