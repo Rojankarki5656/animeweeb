@@ -74,7 +74,6 @@ const Player = ({
           frameBorder="0"
           scrolling="no"
           title={`${animeTitle} Episode ${episodeNumber}`}
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation"
         />
       )}
 
