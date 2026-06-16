@@ -26,8 +26,6 @@ const Home = () => {
   const { items, remove, clearAll, exportData, importData } =
     useContinueWatching();
 
-    console.log("Continue Watching Items:", items); // Debug log
-
   const {
     data: latestEpisodes,
     loading: latestLoading,
