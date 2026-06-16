@@ -28,7 +28,6 @@ export const useSeriesData = (id, type) => {
     isError: megaError,
   } = useMegaAnime(id);
 
-  console.log("Mega id vs AniList id:", megaData?.anime?.ani_id, id);
 
   useEffect(() => {
     if (!id) return;

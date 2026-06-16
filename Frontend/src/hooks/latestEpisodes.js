@@ -13,8 +13,6 @@ export function useLatestEpisodes(page, per_page) {
         setLoading(true);
         setError(null);
 
-        console.log("BASE_URL:", BASE_URL);
-
         const res = await fetch(
           `${BASE_URL}/api/recent-anime?page=${page || 1}&per_page=${per_page || 20}`
         );

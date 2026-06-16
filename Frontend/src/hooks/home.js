@@ -32,8 +32,6 @@ export function useAniListHome() {
                 loading: false,
                 error: null,
               });
-              console.log('Loaded from cache');
-              console.log('Cache data:', parsed.data);
               return;
             }
           }

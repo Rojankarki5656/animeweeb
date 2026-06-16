@@ -20,7 +20,10 @@ const TrendingLayout = ({ data, heading = "Trending Now 🔥" }) => {
 
   return (
     <section className="py-8 w-full" aria-labelledby="trending-heading">
-      <Heading id="trending-heading" className="mb-6 text-white text-3xl font-bold">
+      <Heading
+        id="trending-heading"
+        className="mb-6 text-white text-3xl font-bold"
+      >
         {heading}
       </Heading>
 
@@ -45,10 +48,16 @@ const TrendingLayout = ({ data, heading = "Trending Now 🔥" }) => {
           {data.map((item) => (
             <div
               key={item.id}
-              className="flex-shrink-0 w-[140px] md:w-[180px] transition-transform duration-300 hover:scale-105"
+              className="group flex-shrink-0 w-[140px] md:w-[180px] transition-transform duration-300 hover:scale-105"
             >
               <Link
-                to={`/anime/${item.id}`}
+                to={
+                  heading === "Continue Watching"
+                    ? item.type === "anime"
+                      ? `/watch/${item.id}/anime?ep=${item.episode}`
+                      : `/watch/${item.id}/latest?ep=${item.episode}`
+                    : `/anime/${item.id}`
+                }
                 className="block relative bg-gray-800 rounded-lg overflow-hidden"
                 aria-label={`Watch ${item.title}`}
               >
@@ -58,9 +67,32 @@ const TrendingLayout = ({ data, heading = "Trending Now 🔥" }) => {
                   loading="lazy"
                   className="w-full aspect-[2/3] object-cover"
                 />
-                {item.rank && (
+
+                {/* Hover action button */}
+                {heading === "Continue Watching" && (
+                    <div className="absolute inset-x-0 bottom-0 h-0 group-hover:h-10 overflow-hidden transition-all duration-300">
+                      <div className="bg-gradient-to-r from-orange-600/90 to-pink-600/90 flex items-center justify-center h-full">
+                        <span className="text-sm font-medium text-white">
+                          Watch Now
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Progress Bar */}
+                {heading === "Continue Watching" && item?.progress != null && (
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-black/50 rounded-b-lg overflow-hidden">
+                    <div
+                      className="h-full bg-yellow"
+                      style={{
+                        width: `${item.progress || 0}%`,
+                      }}
+                    />
+                  </div>
+                )}
+                {item.episode && (
                   <div className="absolute top-2 left-2 bg-gradient-to-r from-pink-600 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
-                    #{item.rank}
+                    Ep {item.episode}
                   </div>
                 )}
               </Link>

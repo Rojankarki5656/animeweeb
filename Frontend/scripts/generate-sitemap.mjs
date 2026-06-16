@@ -50,7 +50,6 @@ async function fetchAnimeIds() {
     const topAiring = json?.data?.topAiring || [];
     const all = [...spotlight, ...trending, ...topAiring];
     const ids = [...new Set(all.map(a => a.id).filter(Boolean))];
-    console.log(`✅ Fetched ${ids.length} anime IDs`);
     return ids;
   } catch (err) {
     console.error('❌ Failed to fetch anime IDs:', err.message);
@@ -73,7 +72,6 @@ ${urls.map(url => `  <url><loc>${url}</loc><changefreq>daily</changefreq><priori
 
   const outPath = resolve(process.cwd(), 'public/sitemap.xml');
   writeFileSync(outPath, sitemap);
-  console.log(`✅ Sitemap generated with ${urls.length} URLs at ${outPath}`);
 }
 
 generateSitemap();

@@ -8,6 +8,8 @@ import MainLayout from "../layouts/MainLayout";
 import Footer from "../components/Footer";
 import { useAniListHome } from "../hooks/home";
 import { useLatestEpisodes } from "../hooks/latestEpisodes";
+import { useContinueWatching } from "../hooks/useContinueWatching";
+import ContinueWatchingSection from "../layouts/continueWatching";
 
 const Home = () => {
   const {
@@ -20,11 +22,17 @@ const Home = () => {
     error,
   } = useAniListHome();
 
+
+  const { items, remove, clearAll, exportData, importData } =
+    useContinueWatching();
+
+    console.log("Continue Watching Items:", items); // Debug log
+
   const {
     data: latestEpisodes,
     loading: latestLoading,
     error: latestError,
-  } = useLatestEpisodes(1,12);
+  } = useLatestEpisodes(1, 12);
 
   // Prepare data for HeroCarousel – take first 6 from trendingNow + popularThisSeason
   const heroSlides = [...(trendingNow || []), ...(popularThisSeason || [])]
@@ -32,8 +40,8 @@ const Home = () => {
     .map((anime, idx) => ({
       id: anime.id,
       title:
-        anime.title?.romaji ||
         anime.title?.english ||
+        anime.title?.romanji ||
         anime.title?.native ||
         "Untitled",
       poster: anime.coverImage?.extraLarge || anime.coverImage?.large || "",
@@ -41,6 +49,7 @@ const Home = () => {
       aired: new Date().getFullYear().toString(), // fallback
       duration: "? min",
       synopsis: anime.description || "No description available.",
+      averageScore: anime.averageScore || "N/A",
       sessionId: null, // if you don't need sessions, set null
       rank: idx + 1,
     }));
@@ -48,7 +57,7 @@ const Home = () => {
   // For TrendingLayout – use trendingNow (already in correct shape)
   const trendingData = (trendingNow || []).map((anime, idx) => ({
     id: anime.id,
-    title: anime.title?.romaji || anime.title?.english || anime.title?.native,
+    title: anime.title?.english || anime.title?.romanji || anime.title?.native,
     poster: anime.coverImage?.large || anime.coverImage?.medium,
     rank: idx + 1,
     sessionId: null, // adjust if needed
@@ -57,7 +66,7 @@ const Home = () => {
   // For MainLayout – upcoming next season
   const upcomingData = (upcomingNextSeason || []).map((anime) => ({
     id: anime.id,
-    title: anime.title?.romaji || anime.title?.english || anime.title?.native,
+    title: anime.title?.english || anime.title?.romanji || anime.title?.native,
     poster: anime.coverImage?.large || anime.coverImage?.medium,
     episodes: { sub: 0, dub: 0, eps: 0 }, // fallback – API does not provide episode counts
     type: "ANIME",
@@ -66,7 +75,7 @@ const Home = () => {
   // For MainLayout – all time popular
   const popularData = (allTimePopular || []).map((anime) => ({
     id: anime.id,
-    title: anime.title?.romaji || anime.title?.english || anime.title?.native,
+    title: anime.title?.english || anime.title?.romanji || anime.title?.native,
     poster: anime.coverImage?.large || anime.coverImage?.medium,
     episodes: { sub: 0, dub: 0, eps: 0 },
     type: "ANIME",
@@ -75,7 +84,7 @@ const Home = () => {
   // For MainLayout – top 100 (show rank)
   const top100Data = (top100 || []).map((anime, idx) => ({
     id: anime.id,
-    title: anime.title?.romaji || anime.title?.english || anime.title?.native,
+    title: anime.title?.english || anime.title?.romanji || anime.title?.native,
     poster: anime.coverImage?.large || anime.coverImage?.medium,
     episodes: { sub: 0, dub: 0, eps: 0 },
     type: "ANIME",
@@ -106,8 +115,14 @@ const Home = () => {
 
       {/* Hero Carousel – uses trending + popular */}
       <HeroCarousel slides={heroSlides} />
-
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Continue Watching Section */}
+        {items && (
+          <TrendingLayout
+            heading="Continue Watching"
+            data={items}
+          />
+        )}
         {/* Trending Section */}
         {trendingData.length > 0 && (
           <TrendingLayout data={trendingData} heading="🔥 Trending Now" />

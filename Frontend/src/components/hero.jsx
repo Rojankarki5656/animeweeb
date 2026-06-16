@@ -47,7 +47,7 @@ export function HeroCarousel({ slides }) {
                 <span className="bg-blue-600 px-3 py-1 rounded">{item.type || "ANIME"}</span>
                 <span className="flex items-center gap-1">
                   <Star size={16} className="text-yellow-400" />
-                  {item.rating || "N/A"}
+                  {item.averageScore || "N/A"}
                 </span>
                 <span>{item.aired || "Unknown"}</span>
                 <span>{item.duration || "??"}</span>

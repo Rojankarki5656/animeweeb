@@ -1,5 +1,5 @@
 // WatchPage.js
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Link, useParams, useSearchParams, Navigate } from "react-router-dom";
 import Loader from "../components/Loader";
 import Player from "../components/Player";
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useSeriesData } from "../hooks/useSeriesData";
+import { useContinueWatching } from "../hooks/useContinueWatching";
 
 // ----------------------------------------------------------------------
 // Helper functions
@@ -40,27 +41,27 @@ const getEpisodeParam = (release) => {
 // Main WatchPage component
 // ----------------------------------------------------------------------
 const WatchPage = () => {
-  const { id, type } = useParams(); // numeric anime ID from URL
+  const { id, type } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [layout, setLayout] = useState("column");
   const [showEpisodeList, setShowEpisodeList] = useState(true);
   const [theaterMode, setTheaterMode] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
 
+  const { addOrUpdate } = useContinueWatching();
+
   const ep = normalizeEpisodeParam(searchParams.get("ep"));
 
-  // Use the enhanced hook with fallback
-  const { series, episodes, isLoading, isError, usedFallback } = useSeriesData(
-    id,
-    type,
-  );
-  // Find current episode object
+  // ---- Data fetching ----
+  const { series, episodes, isLoading, isError } = useSeriesData(id, type);
+
+  // ---- Current episode ----
   const currentEp = useMemo(() => {
     if (!ep || !episodes.length) return null;
-    return episodes.find((episode) => String(episode.number) === ep);
+    return episodes.find((e) => String(e.number) === ep);
   }, [episodes, ep]);
 
-  // Update URL when episode changes
+  // ---- URL update ----
   const updateParams = useCallback(
     (newEpisodeNum) => {
       const normalized = normalizeEpisodeParam(newEpisodeNum);
@@ -74,22 +75,32 @@ const WatchPage = () => {
     [setSearchParams],
   );
 
-  // If no episode param and episodes exist, select first episode
-  useEffect(() => {
-    if (!ep && episodes.length > 0) {
-      const firstEpNum = getEpisodeParam(episodes[0]);
-      if (firstEpNum) updateParams(firstEpNum);
-    }
-  }, [ep, episodes, updateParams]);
+  // ---- Language preference (SUB/DUB) ----
+  const [preferredLanguage, setPreferredLanguage] = useState(() => {
+    const saved = localStorage.getItem("preferredLanguage");
+    return saved === "dub" ? "dub" : "sub";
+  });
 
-  // If current episode is invalid, fallback to first episode
-  useEffect(() => {
-    if (ep && episodes.length > 0 && !currentEp) {
-      const firstEpNum = getEpisodeParam(episodes[0]);
-      if (firstEpNum) updateParams(firstEpNum);
-    }
-  }, [ep, episodes, currentEp, updateParams]);
+  const handleLanguageChange = useCallback((lang) => {
+    setPreferredLanguage(lang);
+    localStorage.setItem("preferredLanguage", lang);
+  }, []);
 
+  // ---- Auto-skip intro (toggle) ----
+  const [autoSkipIntro, setAutoSkipIntro] = useState(() => {
+    const saved = localStorage.getItem("autoSkipIntro");
+    return saved === "true";
+  });
+
+  const handleAutoSkipToggle = useCallback(() => {
+    setAutoSkipIntro((prev) => {
+      const newVal = !prev;
+      localStorage.setItem("autoSkipIntro", String(newVal));
+      return newVal;
+    });
+  }, []);
+
+  // ---- Episode navigation (defined before it's used in the listener) ----
   const currentIndex = useMemo(() => {
     if (!currentEp) return -1;
     return episodes.findIndex((e) => e.number === currentEp.number);
@@ -98,17 +109,123 @@ const WatchPage = () => {
   const hasNextEp = currentIndex > -1 && currentIndex < episodes.length - 1;
   const hasPrevEp = currentIndex > -1 && currentIndex > 0;
 
-  const changeEpisode = (action) => {
-    if (action === "next" && hasNextEp) {
-      const next = episodes[currentIndex + 1];
-      updateParams(next.number);
-    } else if (action === "prev" && hasPrevEp) {
-      const prev = episodes[currentIndex - 1];
-      updateParams(prev.number);
-    }
-  };
+  const changeEpisode = useCallback(
+    (action) => {
+      if (action === "next" && hasNextEp) {
+        const next = episodes[currentIndex + 1];
+        updateParams(next.number);
+      } else if (action === "prev" && hasPrevEp) {
+        const prev = episodes[currentIndex - 1];
+        updateParams(prev.number);
+      }
+    },
+    [episodes, currentIndex, hasNextEp, hasPrevEp, updateParams],
+  );
 
-  // Prepare player sources from current episode's embed_url
+  // ---- Listen for megaplay events (auto-next + progress) ----
+  const lastUpdateRef = useRef(0);
+  const progressRef = useRef({ currentTime: 0, duration: 0 });
+
+  useEffect(() => {
+    const handler = (event) => {
+      // Security: only accept messages from megaplay.buzz
+      if (event.origin !== "https://megaplay.buzz") return;
+
+      let data = event.data;
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          return;
+        }
+      }
+      // ---- Auto-next when complete ----
+      if (data.event === "complete") {
+        if (hasNextEp) {
+          changeEpisode("next");
+        }
+      }
+
+      // ---- Track progress (time & watching-log events) ----
+      if (data.event === "time" || data.type === "watching-log") {
+        const currentTime = data.time || data.currentTime;
+        const duration = data.duration;
+        const progress = data.percent;
+
+        if (currentTime != null && duration != null) {
+          progressRef.current = { currentTime, duration };
+          // Throttle saves to once every 5 seconds
+          const now = Date.now();
+          if (now - lastUpdateRef.current > 5000 && series && currentEp) {
+            lastUpdateRef.current = now;
+            addOrUpdate({
+              id: id,
+              title: series.title,
+              poster: series.poster,
+              episode: currentEp.number,
+              type: type,
+              timestamp: now,
+              progress: Math.floor(progress),
+              currentTime: Math.floor(currentTime),
+              duration: Math.floor(duration),
+            });
+          }
+        }
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [hasNextEp, changeEpisode, series, currentEp, id, type, addOrUpdate]);
+
+  // ---- Resume time (read from stored data on mount) ----
+  const [resumeTime, setResumeTime] = useState(0);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("animeweebs_continue_watching") || "[]",
+      );
+      const entry = stored.find((item) => item.id === id);
+      if (entry && entry.currentTime) {
+        setResumeTime(entry.currentTime);
+      }
+    } catch {
+      // ignore
+    }
+  }, [id]);
+
+  // ---- Auto-select first episode if none is selected ----
+  useEffect(() => {
+    if (!ep && episodes.length > 0) {
+      const firstEpNum = getEpisodeParam(episodes[0]);
+      if (firstEpNum) updateParams(firstEpNum);
+    }
+  }, [ep, episodes, updateParams]);
+
+  // ---- Fallback if current episode is invalid ----
+  useEffect(() => {
+    if (ep && episodes.length > 0 && !currentEp) {
+      const firstEpNum = getEpisodeParam(episodes[0]);
+      if (firstEpNum) updateParams(firstEpNum);
+    }
+  }, [ep, episodes, currentEp, updateParams]);
+
+  // ---- Save to "Continue Watching" on episode change (without progress) ----
+  useEffect(() => {
+    if (series && currentEp) {
+      addOrUpdate({
+        id: id,
+        title: series.title,
+        poster: series.poster,
+        episode: currentEp.number,
+        type: type,
+        timestamp: Date.now(),
+        // keep existing progress fields if any
+      });
+    }
+  }, [series, currentEp, id, type, addOrUpdate]);
+
+  // ---- Build sources ----
   const getPlayerSources = () => {
     if (!currentEp) return [];
     const sources = [];
@@ -316,15 +433,14 @@ const WatchPage = () => {
                   downloads={[]}
                   isLoading={false}
                   isError={false}
-                  onNext={hasNextEp ? () => changeEpisode("next") : undefined}
-                  onPrev={hasPrevEp ? () => changeEpisode("prev") : undefined}
-                  hasNext={hasNextEp}
-                  hasPrev={hasPrevEp}
+                  preferredLanguage={preferredLanguage}
                   isTheater={theaterMode}
+                  resumeTime={resumeTime}
                 />
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+                {/* Left side: Cinema & Focus */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setTheaterMode(!theaterMode)}
@@ -357,16 +473,65 @@ const WatchPage = () => {
                     {focusMode ? "Exit Focus" : "Focus Mode"}
                   </button>
                 </div>
-                {!focusMode && (
-                  <div className="hidden sm:flex items-center gap-2">
-                    <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg text-xs text-white">
-                      <Bookmark className="w-3 h-3" /> Save
+
+                {/* Right side: Language toggle + Save/Share */}
+                <div className="flex items-center gap-2">
+                  {hasPrevEp && (
+                    <button
+                      onClick={() => changeEpisode("prev")}
+                      className="px-3 py-1.5 text-xs font-medium rounded-md transition bg-gray-800 text-white hover:bg-gray-700"
+                      aria-label="Previous episode"
+                    >
+                      Previous
                     </button>
-                    <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg text-xs text-white">
-                      <Share2 className="w-3 h-3" /> Share
+                  )}
+                  {hasNextEp && (
+                    <button
+                      onClick={() => changeEpisode("next")}
+                      className="px-3 py-1.5 text-xs font-medium rounded-md transition bg-gray-800 text-white hover:bg-gray-700"
+                      aria-label="Next episode"
+                    >
+                      Next
                     </button>
-                  </div>
-                )}
+                  )}
+                  {/* SUB / DUB toggle */}
+                  {currentEp?.embed_url?.sub && currentEp?.embed_url?.dub && (
+                    <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-0.5">
+                      <button
+                        onClick={() => handleLanguageChange("sub")}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                          preferredLanguage === "sub"
+                            ? "bg-primary text-black"
+                            : "bg-gray-800 text-white hover:bg-gray-700"
+                        }`}
+                      >
+                        SUB
+                      </button>
+                      <button
+                        onClick={() => handleLanguageChange("dub")}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                          preferredLanguage === "dub"
+                            ? "bg-primary text-black"
+                            : "bg-gray-800 text-white hover:bg-gray-700"
+                        }`}
+                      >
+                        DUB
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Save & Share (hidden on small screens) */}
+                  {!focusMode && (
+                    <div className="hidden sm:flex items-center gap-2">
+                      <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg text-xs text-white">
+                        <Bookmark className="w-3 h-3" /> Save
+                      </button>
+                      <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-lg text-xs text-white">
+                        <Share2 className="w-3 h-3" /> Share
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

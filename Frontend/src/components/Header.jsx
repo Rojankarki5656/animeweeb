@@ -1,10 +1,11 @@
 // components/Header.jsx
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Search, Menu, X, Loader2 } from "lucide-react";
+import { Search, Menu, X, Loader2, Settings } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import useSidebarStore from "../store/sidebarStore";
 import Logo from "./Logo";
 import debounce from "lodash/debounce";
+import { useContinueWatching } from "../hooks/useContinueWatching"; // <-- import
 
 const ANILIST_API = "https://graphql.anilist.co";
 
@@ -40,13 +41,57 @@ const Header = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- new state
+
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
+  const settingsRef = useRef(null); // <-- for click outside
+  const fileInputRef = useRef(null); // <-- for import
 
-  // Debounced search function
+  // ---- Continue Watching hook ----
+  const { exportData, importData } = useContinueWatching();
+
+  // ---- Settings toggle ----
+  const toggleSettings = () => setIsSettingsOpen((prev) => !prev);
+  const closeSettings = () => setIsSettingsOpen(false);
+
+  // ---- Click outside to close settings ----
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        closeSettings();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ---- Import handler ----
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const success = importData(ev.target.result, true); // merge by default
+      if (success) {
+        // optional success toast
+        console.log("Import successful");
+      } else {
+        alert("Invalid file format");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ""; // reset input
+    closeSettings();
+  };
+
+  // ---- Debounced search (unchanged) ----
   const fetchSuggestions = useCallback(
     debounce(async (searchTerm) => {
       if (!searchTerm || searchTerm.length < 2) {
@@ -106,7 +151,6 @@ const Header = () => {
     resetSearch();
   };
 
-  // Keyboard navigation
   const handleKeyDown = (e) => {
     if (!suggestions.length) return;
     if (e.key === "ArrowDown") {
@@ -121,7 +165,6 @@ const Header = () => {
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -175,7 +218,7 @@ const Header = () => {
             )}
           </form>
 
-          {/* Suggestions Dropdown */}
+          {/* Suggestions Dropdown (unchanged) */}
           {(value.length >= 2) && (suggestions.length > 0 || isLoading) && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-800/50 shadow-2xl overflow-hidden z-50">
               {isLoading ? (
@@ -234,16 +277,71 @@ const Header = () => {
           )}
         </div>
 
-        {/* Mobile Search Toggle */}
-        <button
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="md:hidden text-white hover:text-blue-400 p-2 rounded-lg hover:bg-gray-800/50 transition"
-        >
-          {isMobileOpen ? <X size={24} /> : <Search size={22} />}
-        </button>
+        {/* Right side: Mobile toggle + Settings */}
+        <div className="flex items-center gap-2">
+          {/* Mobile Search Toggle */}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="md:hidden text-white hover:text-blue-400 p-2 rounded-lg hover:bg-gray-800/50 transition"
+          >
+            {isMobileOpen ? <X size={24} /> : <Search size={22} />}
+          </button>
+
+          {/* Settings Icon with Dropdown */}
+          <div className="relative" ref={settingsRef}>
+            <button
+              onClick={toggleSettings}
+              className={`p-2 rounded-lg text-white hover:text-blue-400 hover:bg-gray-800/50 transition ${
+                isSettingsOpen ? "rotate-90" : "rotate-0"
+              }`}
+              style={{ transition: "transform 0.3s ease" }}
+              aria-label="Settings"
+            >
+              <Settings size={22} />
+            </button>
+
+            {/* Dropdown */}
+            {isSettingsOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-800/50 shadow-2xl overflow-hidden z-50">
+                <div className="py-2">
+                  <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-800/50">
+                    Watch Data
+                  </div>
+                  <button
+                    onClick={() => {
+                      exportData();
+                      closeSettings();
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white hover:bg-gray-800/70 transition"
+                  >
+                    <span className="text-blue-400">⬇️</span> Export
+                  </button>
+                  <button
+                    onClick={handleImportClick}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white hover:bg-gray-800/70 transition"
+                  >
+                    <span className="text-blue-400">⬆️</span> Import
+                  </button>
+                  <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-800/50 mt-1">
+                    Your data stays locally on your device.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hidden file input for import */}
+          <input
+            type="file"
+            accept=".json"
+            ref={fileInputRef}
+            onChange={handleImportFile}
+            className="hidden"
+          />
+        </div>
       </div>
 
-      {/* Mobile Search Panel */}
+      {/* Mobile Search Panel (unchanged) */}
       {isMobileOpen && (
         <div className="md:hidden bg-black/95 backdrop-blur-xl border-t border-gray-800/50 p-4">
           <form onSubmit={handleSubmit} className="relative">
@@ -264,7 +362,7 @@ const Header = () => {
               </button>
             )}
           </form>
-          {/* Optional: show suggestions in mobile – you can reuse the same list */}
+          {/* (optional mobile suggestions – you can reuse the same dropdown) */}
           {(value.length >= 2 && suggestions.length > 0) && (
             <div className="mt-2 bg-gray-900 rounded-xl overflow-hidden">
               {suggestions.slice(0, 5).map((anime) => (
