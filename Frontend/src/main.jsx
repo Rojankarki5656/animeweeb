@@ -8,6 +8,7 @@ import App from "./App.jsx";
 import "./index.css";
 import { Analytics } from '@vercel/analytics/react';
 import "react-toastify/dist/ReactToastify.css";
+import AnalyticsTracker from "./components/AnalyticsTracker.jsx";
 
 // Optimization: Set staleTime to avoid unnecessary refetches that slow down the UI
 const queryClient = new QueryClient({
@@ -24,6 +25,7 @@ createRoot(document.getElementById("root")).render(
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <AnalyticsTracker />
           <ToastContainer
             position="top-right"
             autoClose={2000}
